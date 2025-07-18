@@ -32,14 +32,10 @@
       margin-bottom: 15px;
       color: #777;
       background-color: #fafafa;
+      cursor: pointer;
     }
-    #fileInput::before {
-      content: '+';
-      position: absolute;
-      right: 20px;
-      top: 5px;
-      font-size: 24px;
-      color: #003366;
+    #fileInput {
+      display: none;
     }
     #fileList {
       font-size: 14px;
@@ -89,10 +85,17 @@
     .keyword-container {
       display: flex;
       align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    #searchTerm {
+      flex: 1;
+      width: auto;
     }
 
     .suggestions {
-      margin-left: 10px;
+      margin-left: 20px;
+      width: 200px;
     }
 
     .suggestions ul {
@@ -108,6 +111,8 @@
       border-radius: 4px;
       cursor: pointer;
       white-space: nowrap;
+      font-size: 12px;
+      color: blue;
     }
 
     .suggestions li:hover {
@@ -119,7 +124,7 @@
   <header>PPH Dept.</header>
   <div class="container">
     <h2>Department-wise Entries</h2>
-    <div id="dropArea">Drag and drop (You can add multiple files also)</div>
+    <div id="dropArea">Drag &amp; Drop files here or click to browse</div>
     <input type="file" id="fileInput" multiple accept=".txt">
     <div id="fileList"></div>
     <div class="keyword-container">
@@ -200,6 +205,10 @@
       dropArea.style.borderColor = '#ccc';
       allFiles = allFiles.concat(Array.from(e.dataTransfer.files));
       updateFileList();
+    });
+
+    dropArea.addEventListener('click', () => {
+      fileInput.click();
     });
 
     fileInput.addEventListener('change', () => {
