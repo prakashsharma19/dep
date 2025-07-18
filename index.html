@@ -86,6 +86,34 @@
     button:hover {
       background-color: #0055aa;
     }
+
+    .keyword-container {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .suggestions {
+      margin-left: 10px;
+    }
+
+    .suggestions ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .suggestions li {
+      background: #f1f1f1;
+      margin-bottom: 5px;
+      padding: 5px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .suggestions li:hover {
+      background: #e0e0e0;
+    }
   </style>
 </head>
 <body>
@@ -95,7 +123,12 @@
     <div id="dropArea">Drag and drop (You can add multiple files also)</div>
     <input type="file" id="fileInput" multiple accept=".txt">
     <div id="fileList"></div>
-    <input type="text" id="searchTerm" placeholder="Enter Any Keyword (e.g., Department/Institute/Subjects)">
+    <div class="keyword-container">
+      <input type="text" id="searchTerm" placeholder="Enter Any Keyword (e.g., Department/Institute/Subjects)">
+      <div class="suggestions">
+        <ul id="suggestionsList"></ul>
+      </div>
+    </div>
     <button onclick="extractEntries()">Extract and Download</button>
   </div>
 
@@ -104,6 +137,42 @@
     const fileInput = document.getElementById('fileInput');
     const fileListDisplay = document.getElementById('fileList');
     let allFiles = [];
+
+    const defaultSuggestions = ['Department of Mathematics', 'Department of Statistics'];
+
+    function getStoredSuggestions() {
+      try {
+        return JSON.parse(localStorage.getItem('keywordSuggestions')) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function updateSuggestionsUI() {
+      const list = document.getElementById('suggestionsList');
+      if (!list) return;
+      const stored = getStoredSuggestions();
+      const all = Array.from(new Set(defaultSuggestions.concat(stored)));
+      list.innerHTML = all
+        .map(s => `<li onclick="selectSuggestion('${s.replace(/'/g, "\\'")}')">${s}</li>`)
+        .join('');
+    }
+
+    function selectSuggestion(text) {
+      document.getElementById('searchTerm').value = text;
+    }
+
+    function saveSuggestion(keyword) {
+      if (!keyword) return;
+      const stored = getStoredSuggestions();
+      if (!stored.includes(keyword)) {
+        stored.push(keyword);
+        localStorage.setItem('keywordSuggestions', JSON.stringify(stored));
+        updateSuggestionsUI();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', updateSuggestionsUI);
 
     function updateFileList() {
       fileListDisplay.innerHTML = allFiles.map((f, i) => `
@@ -146,6 +215,8 @@
         alert("Please select file(s) and enter a keyword.");
         return;
       }
+
+      saveSuggestion(keywordInput);
 
       let output = '';
       let entryCount = 0;
