@@ -134,7 +134,11 @@
         <ul id="suggestionsList"></ul>
       </div>
     </div>
-    <button onclick="extractEntries()">Extract and Download</button>
+    <button id="processBtn" style="background-color:#28a745;">Process</button>
+    <div id="processOptions" style="display:none; margin-top:10px;">
+      <button onclick="extractEntries()">Extract and Download</button>
+      <button onclick="downloadRest()">Download Rest</button>
+    </div>
   </div>
 
   <script>
@@ -147,9 +151,18 @@
 
     function getStoredSuggestions() {
       try {
-        return JSON.parse(localStorage.getItem('keywordSuggestions')) || [];
+        const raw = localStorage.getItem('keywordSuggestions');
+        if (!raw) return {};
+        const data = JSON.parse(raw);
+        if (Array.isArray(data)) {
+          const obj = {};
+          data.forEach(k => obj[k] = (obj[k] || 0) + 1);
+          localStorage.setItem('keywordSuggestions', JSON.stringify(obj));
+          return obj;
+        }
+        return data;
       } catch (e) {
-        return [];
+        return {};
       }
     }
 
@@ -157,10 +170,25 @@
       const list = document.getElementById('suggestionsList');
       if (!list) return;
       const stored = getStoredSuggestions();
-      const all = Array.from(new Set(defaultSuggestions.concat(stored)));
-      list.innerHTML = all
-        .map(s => `<li onclick="selectSuggestion('${s.replace(/'/g, "\\'")}')">${s}</li>`)
+      const combined = {};
+      defaultSuggestions.forEach(s => combined[s] = stored[s] || 0);
+      Object.keys(stored).forEach(k => combined[k] = stored[k]);
+      const sorted = Object.keys(combined)
+        .map(k => ({ text: k, count: combined[k] }))
+        .sort((a, b) => b.count - a.count);
+      const top = sorted.slice(0, 5);
+      const rest = sorted.slice(5);
+      list.innerHTML = top
+        .map(s => `<li onclick="selectSuggestion('${s.text.replace(/'/g, "\\'")}")">${s.text}</li>`)
         .join('');
+      if (rest.length) {
+        list.innerHTML += `<li id="showMore">+</li>` +
+          rest.map(s => `<li class="more-suggestion" style="display:none" onclick="selectSuggestion('${s.text.replace(/'/g, "\\'")}")">${s.text}</li>`).join('');
+        document.getElementById('showMore').addEventListener('click', function() {
+          document.querySelectorAll('.more-suggestion').forEach(li => li.style.display = 'block');
+          this.style.display = 'none';
+        });
+      }
     }
 
     function selectSuggestion(text) {
@@ -170,14 +198,23 @@
     function saveSuggestion(keyword) {
       if (!keyword) return;
       const stored = getStoredSuggestions();
-      if (!stored.includes(keyword)) {
-        stored.push(keyword);
-        localStorage.setItem('keywordSuggestions', JSON.stringify(stored));
-        updateSuggestionsUI();
-      }
+      stored[keyword] = (stored[keyword] || 0) + 1;
+      localStorage.setItem('keywordSuggestions', JSON.stringify(stored));
+      updateSuggestionsUI();
     }
 
-    document.addEventListener('DOMContentLoaded', updateSuggestionsUI);
+    document.addEventListener('DOMContentLoaded', () => {
+      updateSuggestionsUI();
+      const btn = document.getElementById('processBtn');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const opts = document.getElementById('processOptions');
+          if (opts) {
+            opts.style.display = opts.style.display === 'none' ? 'block' : 'none';
+          }
+        });
+      }
+    });
 
     function updateFileList() {
       fileListDisplay.innerHTML = allFiles.map((f, i) => `
@@ -262,6 +299,63 @@
             const mainFileName = allFiles[0].name.split('.')[0].split(/[- ]/)[0];
             const cleanedKeyword = keywordInput.replace(/\s+/g, ' ').trim();
             const fileName = `${mainFileName} - ${cleanedKeyword} (${entryCount} Entries).txt`;
+
+            const blob = new Blob([output], {type: "text/plain"});
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    function downloadRest() {
+      const keywordInput = document.getElementById('searchTerm').value.trim();
+      const keyword = keywordInput.toLowerCase();
+      if (!allFiles.length || !keyword) {
+        alert("Please select file(s) and enter a keyword.");
+        return;
+      }
+
+      saveSuggestion(keywordInput);
+
+      let output = '';
+      let entryCount = 0;
+      let filesRead = 0;
+
+      allFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const lines = e.target.result.split(/\r?\n/);
+          let block = [];
+          for (let line of lines) {
+            if (line.trim() === '') {
+              if (block.length && !block.join('\n').toLowerCase().includes(keyword)) {
+                output += block.join('\n') + '\n\n';
+                entryCount++;
+              }
+              block = [];
+            } else {
+              block.push(line);
+            }
+          }
+          if (block.length && !block.join('\n').toLowerCase().includes(keyword)) {
+            output += block.join('\n') + '\n\n';
+            entryCount++;
+          }
+
+          filesRead++;
+          if (filesRead === allFiles.length) {
+            if (!output) {
+              alert("No entries found for download.");
+              return;
+            }
+
+            const mainFileName = allFiles[0].name.split('.')[0].split(/[- ]/)[0];
+            const cleanedKeyword = keywordInput.replace(/\s+/g, ' ').trim();
+            const fileName = `${mainFileName} - other than ${cleanedKeyword} (${entryCount} Entries).txt`;
 
             const blob = new Blob([output], {type: "text/plain"});
             const link = document.createElement("a");
