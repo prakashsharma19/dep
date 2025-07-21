@@ -97,6 +97,8 @@
     .suggestions {
       margin-left: 20px;
       width: 200px;
+      max-height: 150px;
+      overflow-y: auto;
     }
 
     .suggestions ul {
@@ -114,6 +116,22 @@
       white-space: nowrap;
       font-size: 12px;
       color: blue;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .suggestions li button {
+      background: red;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      line-height: 14px;
+      font-size: 10px;
+      cursor: pointer;
+      padding: 0;
     }
 
     .suggestions li:hover {
@@ -147,7 +165,7 @@
     const fileListDisplay = document.getElementById('fileList');
     let allFiles = [];
 
-    const defaultSuggestions = ['Department of Mathematics', 'Department of Statistics'];
+    let defaultSuggestions = ['Department of Mathematics', 'Department of Statistics'];
 
     function getStoredSuggestions() {
       try {
@@ -178,22 +196,48 @@
         .sort((a, b) => b.count - a.count);
       const top = sorted.slice(0, 5);
       const rest = sorted.slice(5);
-      list.innerHTML = top
-        .map(s => `<li>${s.text}</li>`)
-        .join('');
+
+      const liMarkup = s =>
+        `<li data-text="${s.text}"><span>${s.text}</span><button>&times;</button></li>`;
+
+      list.innerHTML = top.map(liMarkup).join('');
       if (rest.length) {
         list.innerHTML += `<li id="showMore">+</li>` +
-          rest.map(s => `<li class="more-suggestion" style="display:none">${s.text}</li>`).join('');
+          rest.map(s => `<li class="more-suggestion" style="display:none" data-text="${s.text}"><span>${s.text}</span><button>&times;</button></li>`).join('');
         document.getElementById('showMore').addEventListener('click', function() {
-          document.querySelectorAll('.more-suggestion').forEach(li => li.style.display = 'block');
+          document.querySelectorAll('.more-suggestion').forEach(li => li.style.display = 'flex');
           this.style.display = 'none';
         });
       }
+
       list.querySelectorAll('li').forEach(li => {
         if (li.id !== 'showMore') {
-          li.addEventListener('click', () => selectSuggestion(li.textContent));
+          li.addEventListener('click', () => selectSuggestion(li.dataset.text));
+          const btn = li.querySelector('button');
+          if (btn) {
+            btn.addEventListener('click', e => {
+              e.stopPropagation();
+              deleteSuggestion(li.dataset.text);
+            });
+          }
         }
       });
+    }
+
+    function deleteSuggestion(text) {
+      const stored = getStoredSuggestions();
+      let changed = false;
+      if (stored[text]) {
+        delete stored[text];
+        localStorage.setItem('keywordSuggestions', JSON.stringify(stored));
+        changed = true;
+      }
+      const idx = defaultSuggestions.indexOf(text);
+      if (idx > -1) {
+        defaultSuggestions.splice(idx, 1);
+        changed = true;
+      }
+      if (changed) updateSuggestionsUI();
     }
 
     function selectSuggestion(text) {
