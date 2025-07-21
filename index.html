@@ -179,16 +179,21 @@
       const top = sorted.slice(0, 5);
       const rest = sorted.slice(5);
       list.innerHTML = top
-        .map(s => `<li onclick="selectSuggestion('${s.text.replace(/'/g, "\\'")}")">${s.text}</li>`)
+        .map(s => `<li>${s.text}</li>`)
         .join('');
       if (rest.length) {
         list.innerHTML += `<li id="showMore">+</li>` +
-          rest.map(s => `<li class="more-suggestion" style="display:none" onclick="selectSuggestion('${s.text.replace(/'/g, "\\'")}")">${s.text}</li>`).join('');
+          rest.map(s => `<li class="more-suggestion" style="display:none">${s.text}</li>`).join('');
         document.getElementById('showMore').addEventListener('click', function() {
           document.querySelectorAll('.more-suggestion').forEach(li => li.style.display = 'block');
           this.style.display = 'none';
         });
       }
+      list.querySelectorAll('li').forEach(li => {
+        if (li.id !== 'showMore') {
+          li.addEventListener('click', () => selectSuggestion(li.textContent));
+        }
+      });
     }
 
     function selectSuggestion(text) {
