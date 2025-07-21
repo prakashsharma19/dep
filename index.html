@@ -194,32 +194,20 @@
       const sorted = Object.keys(combined)
         .map(k => ({ text: k, count: combined[k] }))
         .sort((a, b) => b.count - a.count);
-      const top = sorted.slice(0, 5);
-      const rest = sorted.slice(5);
 
       const liMarkup = s =>
         `<li data-text="${s.text}"><span>${s.text}</span><button>&times;</button></li>`;
 
-      list.innerHTML = top.map(liMarkup).join('');
-      if (rest.length) {
-        list.innerHTML += `<li id="showMore">+</li>` +
-          rest.map(s => `<li class="more-suggestion" style="display:none" data-text="${s.text}"><span>${s.text}</span><button>&times;</button></li>`).join('');
-        document.getElementById('showMore').addEventListener('click', function() {
-          document.querySelectorAll('.more-suggestion').forEach(li => li.style.display = 'flex');
-          this.style.display = 'none';
-        });
-      }
+      list.innerHTML = sorted.map(liMarkup).join('');
 
       list.querySelectorAll('li').forEach(li => {
-        if (li.id !== 'showMore') {
-          li.addEventListener('click', () => selectSuggestion(li.dataset.text));
-          const btn = li.querySelector('button');
-          if (btn) {
-            btn.addEventListener('click', e => {
-              e.stopPropagation();
-              deleteSuggestion(li.dataset.text);
-            });
-          }
+        li.addEventListener('click', () => selectSuggestion(li.dataset.text));
+        const btn = li.querySelector('button');
+        if (btn) {
+          btn.addEventListener('click', e => {
+            e.stopPropagation();
+            deleteSuggestion(li.dataset.text);
+          });
         }
       });
     }
