@@ -108,11 +108,6 @@
       width: 200px;
     }
 
-    #addDomainBtn {
-      margin-left: 5px;
-      width: 30px;
-      height: 30px;
-    }
 
     .suggestions {
       max-height: calc(100vh - 120px);
@@ -136,17 +131,14 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      width: 100%;
     }
 
     .suggestions li span,
     .file-item span {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .file-item span {
       flex: 1;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     .suggestions li button,
@@ -155,6 +147,7 @@
       border: none;
       cursor: pointer;
       padding: 0;
+      margin-left: 5px;
     }
 
     .suggestions li button img,
@@ -190,7 +183,6 @@
             <option value="hotmail.com">Hotmail</option>
             <option value="live.com">Live</option>
           </select>
-          <button type="button" id="addDomainBtn">+</button>
         </div>
       </div>
       <button id="processBtn" style="background-color:#28a745;">Process</button>
@@ -379,20 +371,6 @@
       generateFileSuggestions();
       const domains = getCustomDomains();
       domains.forEach(d => addDomainOption(d));
-      const addBtn = document.getElementById('addDomainBtn');
-      if (addBtn) {
-        addBtn.addEventListener('click', () => {
-          let d = prompt('Enter domain (e.g., example.com):');
-          if (d) {
-            d = d.trim().toLowerCase();
-            if (d && !domains.includes(d)) {
-              domains.push(d);
-              saveCustomDomains(domains);
-              addDomainOption(d);
-            }
-          }
-        });
-      }
       const btn = document.getElementById('processBtn');
       if (btn) {
         btn.addEventListener('click', () => {
