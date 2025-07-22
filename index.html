@@ -138,7 +138,8 @@
     .file-item span {
       flex: 1;
       white-space: normal;
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
+      word-break: normal;
     }
 
     .suggestions li button,
@@ -148,6 +149,9 @@
       cursor: pointer;
       padding: 0;
       margin-left: 5px;
+      width: auto;
+      margin-bottom: 0;
+      display: inline;
     }
 
     .suggestions li button img,
