@@ -18,12 +18,22 @@
     }
     .container {
       padding: 30px;
-      max-width: 800px;
-      margin: auto;
       background-color: #fff;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       border-radius: 10px;
-      margin-top: 40px;
+      width: 100%;
+      display: flex;
+      margin: 0;
+      min-height: calc(100vh - 60px);
+    }
+    .left-section {
+      flex: 3;
+      padding-right: 20px;
+    }
+    .right-section {
+      flex: 1;
+      border-left: 1px solid #ccc;
+      padding-left: 20px;
     }
     #dropArea {
       border: 2px dashed #ccc;
@@ -84,20 +94,19 @@
     }
 
     .keyword-container {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+      margin-bottom: 15px;
     }
 
     #searchTerm {
-      flex: 1;
-      width: auto;
+      width: 100%;
+    }
+
+    .domain-filter {
+      margin-bottom: 15px;
     }
 
     .suggestions {
-      margin-left: 20px;
-      width: 200px;
-      max-height: 150px;
+      max-height: calc(100vh - 120px);
       overflow-y: auto;
     }
 
@@ -142,20 +151,36 @@
 <body>
   <header>PPH Dept.</header>
   <div class="container">
-    <h2>Department-wise Entries</h2>
-    <div id="dropArea">Drag &amp; Drop files here or click to browse</div>
-    <input type="file" id="fileInput" multiple accept=".txt">
-    <div id="fileList"></div>
-    <div class="keyword-container">
-      <input type="text" id="searchTerm" placeholder="Enter Any Keyword (e.g., Department/Institute/Subject)">
+    <div class="left-section">
+      <h2>Department-wise Entries</h2>
+      <div id="dropArea">Drag &amp; Drop files here or click to browse</div>
+      <input type="file" id="fileInput" multiple accept=".txt">
+      <div id="fileList"></div>
+      <div class="keyword-container">
+        <input type="text" id="searchTerm" placeholder="Enter Any Keyword (e.g., Department/Institute/Subject)">
+      </div>
+      <div class="domain-filter">
+        <label for="emailFilter">Email Domain</label>
+        <select id="emailFilter">
+          <option value="">All Domains</option>
+          <option value="yahoo.com">Yahoo</option>
+          <option value="gmail.com">Gmail</option>
+          <option value="hotmail.com">Hotmail</option>
+          <option value="live.com">Live</option>
+          <option value="generic">Generic Domains</option>
+        </select>
+      </div>
+      <button id="processBtn" style="background-color:#28a745;">Process</button>
+      <div id="processOptions" style="display:none; margin-top:10px;">
+        <button onclick="extractEntries()">Extract and Download</button>
+        <button onclick="downloadRest()">Download Rest</button>
+      </div>
+    </div>
+    <div class="right-section">
+      <h3>Keyword Suggestions</h3>
       <div class="suggestions">
         <ul id="suggestionsList"></ul>
       </div>
-    </div>
-    <button id="processBtn" style="background-color:#28a745;">Process</button>
-    <div id="processOptions" style="display:none; margin-top:10px;">
-      <button onclick="extractEntries()">Extract and Download</button>
-      <button onclick="downloadRest()">Download Rest</button>
     </div>
   </div>
 
@@ -232,6 +257,23 @@
       document.getElementById('searchTerm').value = text;
     }
 
+    function matchesDomain(text, domain) {
+      if (!domain) return true;
+      const regex = /[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        const d = match[1].toLowerCase();
+        if (domain === 'generic') {
+          if (!['gmail.com','yahoo.com','hotmail.com','live.com'].includes(d)) {
+            return true;
+          }
+        } else if (d.endsWith(domain)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     function saveSuggestion(keyword) {
       if (!keyword) return;
       const stored = getStoredSuggestions();
@@ -294,6 +336,7 @@
     function extractEntries() {
       const keywordInput = document.getElementById('searchTerm').value.trim();
       const keyword = keywordInput.toLowerCase();
+      const domain = document.getElementById('emailFilter').value;
       if (!allFiles.length || !keyword) {
         alert("Please select file(s) and enter a keyword.");
         return;
@@ -312,8 +355,9 @@
           let block = [];
           for (let line of lines) {
             if (line.trim() === '') {
-              if (block.join('\n').toLowerCase().includes(keyword)) {
-                output += block.join('\n') + '\n\n';
+              const text = block.join('\n');
+              if (text.toLowerCase().includes(keyword) && matchesDomain(text, domain)) {
+                output += text + '\n\n';
                 entryCount++;
               }
               block = [];
@@ -321,9 +365,12 @@
               block.push(line);
             }
           }
-          if (block.length && block.join('\n').toLowerCase().includes(keyword)) {
-            output += block.join('\n') + '\n\n';
-            entryCount++;
+          if (block.length) {
+            const text = block.join('\n');
+            if (text.toLowerCase().includes(keyword) && matchesDomain(text, domain)) {
+              output += text + '\n\n';
+              entryCount++;
+            }
           }
 
           filesRead++;
@@ -351,6 +398,7 @@
     function downloadRest() {
       const keywordInput = document.getElementById('searchTerm').value.trim();
       const keyword = keywordInput.toLowerCase();
+      const domain = document.getElementById('emailFilter').value;
       if (!allFiles.length || !keyword) {
         alert("Please select file(s) and enter a keyword.");
         return;
@@ -369,8 +417,9 @@
           let block = [];
           for (let line of lines) {
             if (line.trim() === '') {
-              if (block.length && !block.join('\n').toLowerCase().includes(keyword)) {
-                output += block.join('\n') + '\n\n';
+              const text = block.join('\n');
+              if (block.length && !text.toLowerCase().includes(keyword) && matchesDomain(text, domain)) {
+                output += text + '\n\n';
                 entryCount++;
               }
               block = [];
@@ -378,9 +427,12 @@
               block.push(line);
             }
           }
-          if (block.length && !block.join('\n').toLowerCase().includes(keyword)) {
-            output += block.join('\n') + '\n\n';
-            entryCount++;
+          if (block.length) {
+            const text = block.join('\n');
+            if (!text.toLowerCase().includes(keyword) && matchesDomain(text, domain)) {
+              output += text + '\n\n';
+              entryCount++;
+            }
           }
 
           filesRead++;
