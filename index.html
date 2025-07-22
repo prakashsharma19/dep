@@ -63,14 +63,8 @@
       margin-bottom: 5px;
     }
     .file-item button {
-      background: red;
-      color: #fff;
+      background: none;
       border: none;
-      border-radius: 50%;
-      width: 16px;
-      height: 16px;
-      line-height: 14px;
-      font-size: 10px;
       cursor: pointer;
       padding: 0;
     }
@@ -105,6 +99,21 @@
       margin-bottom: 15px;
     }
 
+    .domain-wrapper {
+      display: flex;
+      align-items: center;
+    }
+
+    .domain-wrapper select {
+      width: 200px;
+    }
+
+    #addDomainBtn {
+      margin-left: 5px;
+      width: 30px;
+      height: 30px;
+    }
+
     .suggestions {
       max-height: calc(100vh - 120px);
       overflow-y: auto;
@@ -122,7 +131,7 @@
       padding: 5px 8px;
       border-radius: 4px;
       cursor: pointer;
-      white-space: nowrap;
+      white-space: normal;
       font-size: 12px;
       color: blue;
       display: flex;
@@ -130,17 +139,18 @@
       align-items: center;
     }
 
-    .suggestions li button {
-      background: red;
-      color: #fff;
+    .suggestions li button,
+    .file-item button {
+      background: none;
       border: none;
-      border-radius: 50%;
-      width: 16px;
-      height: 16px;
-      line-height: 14px;
-      font-size: 10px;
       cursor: pointer;
       padding: 0;
+    }
+
+    .suggestions li button img,
+    .file-item button img {
+      width: 16px;
+      height: 16px;
     }
 
     .suggestions li:hover {
@@ -161,14 +171,16 @@
       </div>
       <div class="domain-filter">
         <label for="emailFilter">Email Domain</label>
-        <select id="emailFilter">
-          <option value="">All Domains</option>
-          <option value="yahoo.com">Yahoo</option>
-          <option value="gmail.com">Gmail</option>
-          <option value="hotmail.com">Hotmail</option>
-          <option value="live.com">Live</option>
-          <option value="generic">Generic Domains</option>
-        </select>
+        <div class="domain-wrapper">
+          <select id="emailFilter">
+            <option value="">All Domains</option>
+            <option value="yahoo.com">Yahoo</option>
+            <option value="gmail.com">Gmail</option>
+            <option value="hotmail.com">Hotmail</option>
+            <option value="live.com">Live</option>
+          </select>
+          <button type="button" id="addDomainBtn">+</button>
+        </div>
       </div>
       <button id="processBtn" style="background-color:#28a745;">Process</button>
       <div id="processOptions" style="display:none; margin-top:10px;">
@@ -181,6 +193,10 @@
       <div class="suggestions">
         <ul id="suggestionsList"></ul>
       </div>
+      <h3>Department Suggestions</h3>
+      <div class="suggestions">
+        <ul id="fileSuggestionsList"></ul>
+      </div>
     </div>
   </div>
 
@@ -191,6 +207,28 @@
     let allFiles = [];
 
     let defaultSuggestions = ['Department of Mathematics', 'Department of Statistics'];
+    let fileSuggestions = {};
+
+    function getCustomDomains() {
+      try {
+        return JSON.parse(localStorage.getItem('customDomains') || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveCustomDomains(list) {
+      localStorage.setItem('customDomains', JSON.stringify(list));
+    }
+
+    function addDomainOption(domain) {
+      const select = document.getElementById('emailFilter');
+      if (!select) return;
+      const opt = document.createElement('option');
+      opt.value = domain;
+      opt.textContent = domain;
+      select.appendChild(opt);
+    }
 
     function getStoredSuggestions() {
       try {
@@ -221,7 +259,7 @@
         .sort((a, b) => b.count - a.count);
 
       const liMarkup = s =>
-        `<li data-text="${s.text}"><span>${s.text}</span><button>&times;</button></li>`;
+        `<li data-text="${s.text}"><span>${s.text}</span><button><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button></li>`;
 
       list.innerHTML = sorted.map(liMarkup).join('');
 
@@ -253,6 +291,53 @@
       if (changed) updateSuggestionsUI();
     }
 
+    function updateFileSuggestionsUI() {
+      const list = document.getElementById('fileSuggestionsList');
+      if (!list) return;
+      const sorted = Object.keys(fileSuggestions)
+        .map(k => ({ text: k, count: fileSuggestions[k] }))
+        .sort((a, b) => b.count - a.count);
+
+      const liMarkup = s =>
+        `<li data-text="${s.text}"><span>${s.text}</span><button><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button></li>`;
+
+      list.innerHTML = sorted.map(liMarkup).join('');
+      list.querySelectorAll('li').forEach(li => {
+        li.addEventListener('click', () => selectSuggestion(li.dataset.text));
+        const btn = li.querySelector('button');
+        if (btn) {
+          btn.addEventListener('click', e => {
+            e.stopPropagation();
+            li.remove();
+          });
+        }
+      });
+    }
+
+    function generateFileSuggestions() {
+      fileSuggestions = {};
+      if (!allFiles.length) {
+        updateFileSuggestionsUI();
+        return;
+      }
+      let read = 0;
+      allFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const text = e.target.result;
+          const regex = /Department[^\n]*/gi;
+          let m;
+          while ((m = regex.exec(text)) !== null) {
+            const t = m[0].trim();
+            fileSuggestions[t] = (fileSuggestions[t] || 0) + 1;
+          }
+          read++;
+          if (read === allFiles.length) updateFileSuggestionsUI();
+        };
+        reader.readAsText(file);
+      });
+    }
+
     function selectSuggestion(text) {
       document.getElementById('searchTerm').value = text;
     }
@@ -263,11 +348,7 @@
       let match;
       while ((match = regex.exec(text)) !== null) {
         const d = match[1].toLowerCase();
-        if (domain === 'generic') {
-          if (!['gmail.com','yahoo.com','hotmail.com','live.com'].includes(d)) {
-            return true;
-          }
-        } else if (d.endsWith(domain)) {
+        if (d.endsWith(domain)) {
           return true;
         }
       }
@@ -284,6 +365,23 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       updateSuggestionsUI();
+      generateFileSuggestions();
+      const domains = getCustomDomains();
+      domains.forEach(d => addDomainOption(d));
+      const addBtn = document.getElementById('addDomainBtn');
+      if (addBtn) {
+        addBtn.addEventListener('click', () => {
+          let d = prompt('Enter domain (e.g., example.com):');
+          if (d) {
+            d = d.trim().toLowerCase();
+            if (d && !domains.includes(d)) {
+              domains.push(d);
+              saveCustomDomains(domains);
+              addDomainOption(d);
+            }
+          }
+        });
+      }
       const btn = document.getElementById('processBtn');
       if (btn) {
         btn.addEventListener('click', () => {
@@ -299,8 +397,9 @@
       fileListDisplay.innerHTML = allFiles.map((f, i) => `
         <div class="file-item">
           <span>${f.name}</span>
-          <button onclick="removeFile(${i})">&times;</button>
+          <button onclick="removeFile(${i})"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button>
         </div>`).join('');
+      generateFileSuggestions();
     }
 
     function removeFile(index) {
@@ -337,12 +436,12 @@
       const keywordInput = document.getElementById('searchTerm').value.trim();
       const keyword = keywordInput.toLowerCase();
       const domain = document.getElementById('emailFilter').value;
-      if (!allFiles.length || !keyword) {
-        alert("Please select file(s) and enter a keyword.");
+      if (!allFiles.length || (!keyword && !domain)) {
+        alert("Please select file(s) and enter a keyword or choose a domain.");
         return;
       }
 
-      saveSuggestion(keywordInput);
+      if (keyword) saveSuggestion(keywordInput);
 
       let output = '';
       let entryCount = 0;
@@ -356,7 +455,8 @@
           for (let line of lines) {
             if (line.trim() === '') {
               const text = block.join('\n');
-              if (text.toLowerCase().includes(keyword) && matchesDomain(text, domain)) {
+              const kwMatch = keyword ? text.toLowerCase().includes(keyword) : true;
+              if (kwMatch && matchesDomain(text, domain)) {
                 output += text + '\n\n';
                 entryCount++;
               }
@@ -367,7 +467,8 @@
           }
           if (block.length) {
             const text = block.join('\n');
-            if (text.toLowerCase().includes(keyword) && matchesDomain(text, domain)) {
+            const kwMatch = keyword ? text.toLowerCase().includes(keyword) : true;
+            if (kwMatch && matchesDomain(text, domain)) {
               output += text + '\n\n';
               entryCount++;
             }
@@ -382,7 +483,9 @@
 
             const mainFileName = allFiles[0].name.split('.')[0].split(/[- ]/)[0];
             const cleanedKeyword = keywordInput.replace(/\s+/g, ' ').trim();
-            const fileName = `${mainFileName} - ${cleanedKeyword} (${entryCount} Entries).txt`;
+            const fileName = keyword ?
+              `${mainFileName} - ${cleanedKeyword} (${entryCount} Entries).txt` :
+              `${mainFileName} - ${domain} (${entryCount} Entries).txt`;
 
             const blob = new Blob([output], {type: "text/plain"});
             const link = document.createElement("a");
@@ -399,12 +502,12 @@
       const keywordInput = document.getElementById('searchTerm').value.trim();
       const keyword = keywordInput.toLowerCase();
       const domain = document.getElementById('emailFilter').value;
-      if (!allFiles.length || !keyword) {
-        alert("Please select file(s) and enter a keyword.");
+      if (!allFiles.length || (!keyword && !domain)) {
+        alert("Please select file(s) and enter a keyword or choose a domain.");
         return;
       }
 
-      saveSuggestion(keywordInput);
+      if (keyword) saveSuggestion(keywordInput);
 
       let output = '';
       let entryCount = 0;
@@ -418,7 +521,9 @@
           for (let line of lines) {
             if (line.trim() === '') {
               const text = block.join('\n');
-              if (block.length && !text.toLowerCase().includes(keyword) && matchesDomain(text, domain)) {
+              const kwMatch = keyword ? text.toLowerCase().includes(keyword) : false;
+              const domainMatch = matchesDomain(text, domain);
+              if ((keyword && !kwMatch && domainMatch) || (!keyword && domain && !domainMatch)) {
                 output += text + '\n\n';
                 entryCount++;
               }
@@ -429,7 +534,9 @@
           }
           if (block.length) {
             const text = block.join('\n');
-            if (!text.toLowerCase().includes(keyword) && matchesDomain(text, domain)) {
+            const kwMatch = keyword ? text.toLowerCase().includes(keyword) : false;
+            const domainMatch = matchesDomain(text, domain);
+            if ((keyword && !kwMatch && domainMatch) || (!keyword && domain && !domainMatch)) {
               output += text + '\n\n';
               entryCount++;
             }
@@ -444,7 +551,9 @@
 
             const mainFileName = allFiles[0].name.split('.')[0].split(/[- ]/)[0];
             const cleanedKeyword = keywordInput.replace(/\s+/g, ' ').trim();
-            const fileName = `${mainFileName} - other than ${cleanedKeyword} (${entryCount} Entries).txt`;
+            const fileName = keyword ?
+              `${mainFileName} - other than ${cleanedKeyword} (${entryCount} Entries).txt` :
+              `${mainFileName} - not ${domain} (${entryCount} Entries).txt`;
 
             const blob = new Blob([output], {type: "text/plain"});
             const link = document.createElement("a");
