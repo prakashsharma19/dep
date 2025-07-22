@@ -131,12 +131,22 @@
       padding: 5px 8px;
       border-radius: 4px;
       cursor: pointer;
-      white-space: normal;
       font-size: 12px;
       color: blue;
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+
+    .suggestions li span,
+    .file-item span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-item span {
+      flex: 1;
     }
 
     .suggestions li button,
@@ -151,6 +161,7 @@
     .file-item button img {
       width: 16px;
       height: 16px;
+      display: block;
     }
 
     .suggestions li:hover {
@@ -193,7 +204,7 @@
       <div class="suggestions">
         <ul id="suggestionsList"></ul>
       </div>
-      <h3>Department Suggestions</h3>
+      <h3>File based suggestion:</h3>
       <div class="suggestions">
         <ul id="fileSuggestionsList"></ul>
       </div>
@@ -206,7 +217,7 @@
     const fileListDisplay = document.getElementById('fileList');
     let allFiles = [];
 
-    let defaultSuggestions = ['Department of Mathematics', 'Department of Statistics'];
+    let defaultSuggestions = [];
     let fileSuggestions = {};
 
     function getCustomDomains() {
@@ -402,10 +413,11 @@
       generateFileSuggestions();
     }
 
-    function removeFile(index) {
-      allFiles.splice(index, 1);
+   function removeFile(index) {
+     allFiles.splice(index, 1);
       updateFileList();
-    }
+      fileInput.value = '';
+   }
 
     dropArea.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -429,6 +441,7 @@
 
     fileInput.addEventListener('change', () => {
       allFiles = allFiles.concat(Array.from(fileInput.files));
+      fileInput.value = '';
       updateFileList();
     });
 
