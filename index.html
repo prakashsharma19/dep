@@ -91,8 +91,35 @@
       margin-bottom: 15px;
     }
 
-    #searchTerm {
-      width: 100%;
+
+    .selected-keywords {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .keyword-tag {
+      background: #007bff;
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .rest-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f9f9f9;
+      padding: 5px 8px;
+      border-radius: 4px;
+      margin-bottom: 5px;
+    }
+
+    .rest-item button {
+      font-size: 12px;
+      padding: 4px 6px;
     }
 
     .domain-filter {
@@ -175,7 +202,9 @@
       <input type="file" id="fileInput" multiple accept=".txt">
       <div id="fileList"></div>
       <div class="keyword-container">
-        <textarea id="searchTerm" rows="2" placeholder="Enter Keywords separated by comma"></textarea>
+        <div id="selectedKeywords" class="selected-keywords"></div>
+        <input id="keywordInput" type="text" placeholder="Add keyword and press Enter">
+        <input type="hidden" id="searchTerm">
       </div>
       <div class="domain-filter">
         <label for="emailFilter">Email Domain</label>
@@ -220,6 +249,7 @@
 
     let defaultSuggestions = [];
     let fileSuggestions = {};
+    let selectedKeywords = [];
 
     function getCustomDomains() {
       try {
@@ -350,8 +380,29 @@
       });
     }
 
+    function addKeyword(text) {
+      text = text.trim();
+      if (!text || selectedKeywords.includes(text)) return;
+      selectedKeywords.push(text);
+      updateKeywordUI();
+    }
+
+    function updateKeywordUI() {
+      const container = document.getElementById('selectedKeywords');
+      const hidden = document.getElementById('searchTerm');
+      if (!container) return;
+      container.innerHTML = '';
+      selectedKeywords.forEach(k => {
+        const span = document.createElement('span');
+        span.className = 'keyword-tag';
+        span.textContent = k;
+        container.appendChild(span);
+      });
+      if (hidden) hidden.value = selectedKeywords.join(',');
+    }
+
     function selectSuggestion(text) {
-      document.getElementById('searchTerm').value = text;
+      addKeyword(text);
     }
 
     function matchesDomain(text, domain) {
@@ -375,9 +426,7 @@
       updateSuggestionsUI();
     }
     function getKeywords() {
-      const raw = document.getElementById("searchTerm").value.trim();
-      if (!raw) return [];
-      return raw.split(/[\n,]+/).map(k => k.trim()).filter(k => k);
+      return selectedKeywords.slice();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -385,6 +434,17 @@
       generateFileSuggestions();
       const domains = getCustomDomains();
       domains.forEach(d => addDomainOption(d));
+      updateKeywordUI();
+      const input = document.getElementById('keywordInput');
+      if (input) {
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addKeyword(input.value);
+            input.value = '';
+          }
+        });
+      }
       const btn = document.getElementById('processBtn');
       if (btn) {
         btn.addEventListener('click', () => {
@@ -579,10 +639,13 @@
           `${base} - other than ${kwLabel} (${info.count} Entries).txt` :
           `${base} - not ${domain} (${info.count} Entries).txt`;
         const item = document.createElement('div');
+        item.className = 'rest-item';
+        const span = document.createElement('span');
+        span.textContent = name;
         const btn = document.createElement('button');
         btn.textContent = 'Download';
         btn.addEventListener('click', () => downloadBlob(info.output, name));
-        item.textContent = name + ' ';
+        item.appendChild(span);
         item.appendChild(btn);
         listDiv.appendChild(item);
       });
