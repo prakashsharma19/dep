@@ -105,6 +105,18 @@
       padding: 4px 8px;
       border-radius: 4px;
       font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .keyword-tag button {
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
     }
 
     .rest-item {
@@ -225,8 +237,9 @@
       </div>
   <div id="restContainer" style="display:none; margin-top:20px;">
     <h3>Rest Files</h3>
-    <div id="restList"></div>
+    <button id="restAllBtn" style="margin-top:10px;">Download All Rest Files</button>
     <button id="restCombinedBtn" style="margin-top:10px;">Download All Combined</button>
+    <div id="restList"></div>
   </div>
     </div>
     <div class="right-section">
@@ -392,13 +405,27 @@
       const hidden = document.getElementById('searchTerm');
       if (!container) return;
       container.innerHTML = '';
-      selectedKeywords.forEach(k => {
+      selectedKeywords.forEach((k, i) => {
         const span = document.createElement('span');
         span.className = 'keyword-tag';
-        span.textContent = k;
+        const text = document.createElement('span');
+        text.textContent = k;
+        const btn = document.createElement('button');
+        btn.textContent = 'x';
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeKeyword(i);
+        });
+        span.appendChild(text);
+        span.appendChild(btn);
         container.appendChild(span);
       });
       if (hidden) hidden.value = selectedKeywords.join(',');
+    }
+
+    function removeKeyword(index) {
+      selectedKeywords.splice(index, 1);
+      updateKeywordUI();
     }
 
     function selectSuggestion(text) {
@@ -631,6 +658,7 @@
       const container = document.getElementById('restContainer');
       const listDiv = document.getElementById('restList');
       listDiv.innerHTML = '';
+      const files = [];
       list.forEach(info => {
         if (!info.output) return;
         const base = info.file.name.split('.')[0].split(/[- ]/)[0];
@@ -638,6 +666,7 @@
         const name = keywords.length ?
           `${base} - other than ${kwLabel} (${info.count} Entries).txt` :
           `${base} - not ${domain} (${info.count} Entries).txt`;
+        files.push({name, text: info.output});
         const item = document.createElement('div');
         item.className = 'rest-item';
         const span = document.createElement('span');
@@ -654,8 +683,10 @@
       const combinedName = keywords.length ?
         `${mainBase} - other than ${kwLabel} (${combinedCount} Entries).txt` :
         `${mainBase} - not ${domain} (${combinedCount} Entries).txt`;
-      const btnAll = document.getElementById('restCombinedBtn');
-      btnAll.onclick = () => downloadBlob(combinedOutput, combinedName);
+      const btnAllCombined = document.getElementById('restCombinedBtn');
+      btnAllCombined.onclick = () => downloadBlob(combinedOutput, combinedName);
+      const btnAllFiles = document.getElementById('restAllBtn');
+      btnAllFiles.onclick = () => files.forEach(f => downloadBlob(f.text, f.name));
       container.style.display = 'block';
     }
   </script>
