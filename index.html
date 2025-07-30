@@ -68,7 +68,7 @@
       cursor: pointer;
       padding: 0;
     }
-    input[type="file"], input[type="text"], button {
+    input[type="file"], input[type="text"], textarea, button {
       display: block;
       width: 100%;
       margin-bottom: 15px;
@@ -175,7 +175,7 @@
       <input type="file" id="fileInput" multiple accept=".txt">
       <div id="fileList"></div>
       <div class="keyword-container">
-        <input type="text" id="searchTerm" placeholder="Enter Any Keyword (e.g., Department/Institute/Subject)">
+        <textarea id="searchTerm" rows="2" placeholder="Enter Keywords separated by comma"></textarea>
       </div>
       <div class="domain-filter">
         <label for="emailFilter">Email Domain</label>
@@ -194,6 +194,11 @@
         <button onclick="extractEntries()">Extract and Download</button>
         <button onclick="downloadRest()">Download Rest</button>
       </div>
+  <div id="restContainer" style="display:none; margin-top:20px;">
+    <h3>Rest Files</h3>
+    <div id="restList"></div>
+    <button id="restCombinedBtn" style="margin-top:10px;">Download All Combined</button>
+  </div>
     </div>
     <div class="right-section">
       <h3>Keyword Suggestions</h3>
@@ -369,6 +374,11 @@
       localStorage.setItem('keywordSuggestions', JSON.stringify(stored));
       updateSuggestionsUI();
     }
+    function getKeywords() {
+      const raw = document.getElementById("searchTerm").value.trim();
+      if (!raw) return [];
+      return raw.split(/[\n,]+/).map(k => k.trim()).filter(k => k);
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       updateSuggestionsUI();
@@ -427,24 +437,13 @@
       updateFileList();
     });
 
-    function extractEntries() {
-      const keywordInput = document.getElementById('searchTerm').value.trim();
-      const keyword = keywordInput.toLowerCase();
-      const domain = document.getElementById('emailFilter').value;
-      if (!allFiles.length || (!keyword && !domain)) {
-        alert("Please select file(s) and enter a keyword or choose a domain.");
-        return;
-      }
-
-      if (keyword) saveSuggestion(keywordInput);
-
+    function extractForKeyword(keyword, label, domain, cb) {
       let output = '';
       let entryCount = 0;
       let filesRead = 0;
-
       allFiles.forEach(file => {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = e => {
           const lines = e.target.result.split(/\r?\n/);
           let block = [];
           for (let line of lines) {
@@ -468,59 +467,79 @@
               entryCount++;
             }
           }
-
           filesRead++;
           if (filesRead === allFiles.length) {
-            if (!output) {
-              alert("No matches found.");
-              return;
-            }
-
             const mainFileName = allFiles[0].name.split('.')[0].split(/[- ]/)[0];
-            const cleanedKeyword = keywordInput.replace(/\s+/g, ' ').trim();
-            const fileName = keyword ?
-              `${mainFileName} - ${cleanedKeyword} (${entryCount} Entries).txt` :
-              `${mainFileName} - ${domain} (${entryCount} Entries).txt`;
-
-            const blob = new Blob([output], {type: "text/plain"});
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            link.click();
+            const cleaned = label.replace(/\s+/g, ' ').trim();
+            const fileName = label ? `${mainFileName} - ${cleaned} (${entryCount} Entries).txt` : `${mainFileName} - ${domain} (${entryCount} Entries).txt`;
+            cb({output, entryCount, fileName});
           }
         };
         reader.readAsText(file);
       });
     }
+    function downloadBlob(text, name) {
+      const blob = new Blob([text], {type: "text/plain"});
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = name;
+      link.click();
+    }
 
-    function downloadRest() {
-      const keywordInput = document.getElementById('searchTerm').value.trim();
-      const keyword = keywordInput.toLowerCase();
+
+    async function extractEntries() {
+      const keywords = getKeywords();
       const domain = document.getElementById('emailFilter').value;
-      if (!allFiles.length || (!keyword && !domain)) {
+      if (!allFiles.length || (!keywords.length && !domain)) {
         alert("Please select file(s) and enter a keyword or choose a domain.");
         return;
       }
-
-      if (keyword) saveSuggestion(keywordInput);
-
-      let output = '';
-      let entryCount = 0;
-      let filesRead = 0;
-
+      keywords.forEach(k => saveSuggestion(k));
+      const list = keywords.length ? keywords : [''];
+      for (const k of list) {
+        await new Promise(res => {
+          extractForKeyword(k.toLowerCase(), k, domain, ({output, fileName}) => {
+            if (output) {
+              const blob = new Blob([output], {type: 'text/plain'});
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(blob);
+              link.download = fileName;
+              link.click();
+            } else {
+              alert('No matches found.');
+            }
+            res();
+          });
+        });
+      }
+    }
+    function downloadRest() {
+      const keywords = getKeywords().map(k => k.toLowerCase());
+      const domain = document.getElementById('emailFilter').value;
+      if (!allFiles.length || (!keywords.length && !domain)) {
+        alert("Please select file(s) and enter a keyword or choose a domain.");
+        return;
+      }
+      keywords.forEach(k => saveSuggestion(k));
+      const restInfos = [];
+      let combinedOutput = '';
+      let combinedCount = 0;
+      let processed = 0;
       allFiles.forEach(file => {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = e => {
           const lines = e.target.result.split(/\r?\n/);
           let block = [];
+          let output = '';
+          let count = 0;
           for (let line of lines) {
             if (line.trim() === '') {
               const text = block.join('\n');
-              const kwMatch = keyword ? text.toLowerCase().includes(keyword) : false;
-              const domainMatch = matchesDomain(text, domain);
-              if ((keyword && !kwMatch && domainMatch) || (!keyword && domain && !domainMatch)) {
+              const kwMatch = keywords.length ? keywords.some(k => text.toLowerCase().includes(k)) : false;
+              const dMatch = matchesDomain(text, domain);
+              if ((keywords.length && !kwMatch && dMatch) || (!keywords.length && domain && !dMatch)) {
                 output += text + '\n\n';
-                entryCount++;
+                count++;
               }
               block = [];
             } else {
@@ -529,36 +548,52 @@
           }
           if (block.length) {
             const text = block.join('\n');
-            const kwMatch = keyword ? text.toLowerCase().includes(keyword) : false;
-            const domainMatch = matchesDomain(text, domain);
-            if ((keyword && !kwMatch && domainMatch) || (!keyword && domain && !domainMatch)) {
+            const kwMatch = keywords.length ? keywords.some(k => text.toLowerCase().includes(k)) : false;
+            const dMatch = matchesDomain(text, domain);
+            if ((keywords.length && !kwMatch && dMatch) || (!keywords.length && domain && !dMatch)) {
               output += text + '\n\n';
-              entryCount++;
+              count++;
             }
           }
-
-          filesRead++;
-          if (filesRead === allFiles.length) {
-            if (!output) {
-              alert("No entries found for download.");
-              return;
-            }
-
-            const mainFileName = allFiles[0].name.split('.')[0].split(/[- ]/)[0];
-            const cleanedKeyword = keywordInput.replace(/\s+/g, ' ').trim();
-            const fileName = keyword ?
-              `${mainFileName} - other than ${cleanedKeyword} (${entryCount} Entries).txt` :
-              `${mainFileName} - not ${domain} (${entryCount} Entries).txt`;
-
-            const blob = new Blob([output], {type: "text/plain"});
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            link.click();
+          restInfos.push({file, output, count});
+          combinedOutput += output;
+          combinedCount += count;
+          processed++;
+          if (processed === allFiles.length) {
+            showRestResults(restInfos, combinedOutput, combinedCount, keywords, domain);
           }
         };
         reader.readAsText(file);
       });
+    }
+
+    function showRestResults(list, combinedOutput, combinedCount, keywords, domain) {
+      const container = document.getElementById('restContainer');
+      const listDiv = document.getElementById('restList');
+      listDiv.innerHTML = '';
+      list.forEach(info => {
+        if (!info.output) return;
+        const base = info.file.name.split('.')[0].split(/[- ]/)[0];
+        const kwLabel = keywords.join(', ').replace(/\s+/g, ' ').trim();
+        const name = keywords.length ?
+          `${base} - other than ${kwLabel} (${info.count} Entries).txt` :
+          `${base} - not ${domain} (${info.count} Entries).txt`;
+        const item = document.createElement('div');
+        const btn = document.createElement('button');
+        btn.textContent = 'Download';
+        btn.addEventListener('click', () => downloadBlob(info.output, name));
+        item.textContent = name + ' ';
+        item.appendChild(btn);
+        listDiv.appendChild(item);
+      });
+      const mainBase = allFiles[0].name.split('.')[0].split(/[- ]/)[0];
+      const kwLabel = keywords.join(', ').replace(/\s+/g, ' ').trim();
+      const combinedName = keywords.length ?
+        `${mainBase} - other than ${kwLabel} (${combinedCount} Entries).txt` :
+        `${mainBase} - not ${domain} (${combinedCount} Entries).txt`;
+      const btnAll = document.getElementById('restCombinedBtn');
+      btnAll.onclick = () => downloadBlob(combinedOutput, combinedName);
+      container.style.display = 'block';
     }
   </script>
 </body>
