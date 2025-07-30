@@ -659,13 +659,10 @@
       const listDiv = document.getElementById('restList');
       listDiv.innerHTML = '';
       const files = [];
-      list.forEach(info => {
-        if (!info.output) return;
-        const base = info.file.name.split('.')[0].split(/[- ]/)[0];
-        const kwLabel = keywords.join(', ').replace(/\s+/g, ' ').trim();
-        const name = keywords.length ?
-          `${base} - other than ${kwLabel} (${info.count} Entries).txt` :
-          `${base} - not ${domain} (${info.count} Entries).txt`;
+        list.forEach(info => {
+          if (!info.output) return;
+          const baseName = info.file.name.replace(/\.[^.]+$/, '');
+          const name = `${baseName} (${info.count} Entries).txt`;
         files.push({name, text: info.output});
         const item = document.createElement('div');
         item.className = 'rest-item';
@@ -678,11 +675,8 @@
         item.appendChild(btn);
         listDiv.appendChild(item);
       });
-      const mainBase = allFiles[0].name.split('.')[0].split(/[- ]/)[0];
-      const kwLabel = keywords.join(', ').replace(/\s+/g, ' ').trim();
-      const combinedName = keywords.length ?
-        `${mainBase} - other than ${kwLabel} (${combinedCount} Entries).txt` :
-        `${mainBase} - not ${domain} (${combinedCount} Entries).txt`;
+        const mainBase = allFiles[0].name.replace(/\.[^.]+$/, '');
+        const combinedName = `${mainBase} - combined (${combinedCount} Entries).txt`;
       const btnAllCombined = document.getElementById('restCombinedBtn');
       btnAllCombined.onclick = () => downloadBlob(combinedOutput, combinedName);
       const btnAllFiles = document.getElementById('restAllBtn');
