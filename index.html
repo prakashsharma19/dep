@@ -174,23 +174,17 @@
       width: 200px;
     }
 
-    .common-keywords {
-      position: relative;
-      margin-bottom: 15px;
-    }
-    .common-keywords select {
-      padding-right: 0;
-    }
-    #addCommonKeyword {
-      margin-left: 5px;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
 
     #totalEntries {
       font-weight: bold;
       margin-bottom: 15px;
+    }
+
+    #addSuggestion {
+      margin-left: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
     }
 
 
@@ -280,13 +274,7 @@
           </select>
         </div>
       </div>
-      <div class="common-keywords">
-        <label for="commonKeywords">Common Keywords</label>
-        <div class="domain-wrapper">
-          <select id="commonKeywords"></select>
-          <button type="button" id="addCommonKeyword">+</button>
-        </div>
-      </div>
+      
 </div>
       <div id="totalEntries">Total Entries: <span id="totalCount">0</span></div>
       <button id="processBtn" style="background-color:#28a745;"><img src="https://cdn-icons-png.flaticon.com/512/3079/3079162.png" class="btn-icon" alt="process">Process</button>
@@ -306,7 +294,7 @@
       <div class="suggestions">
         <ul id="fileSuggestionsList"></ul>
       </div>
-      <h3>Keyword Suggestions</h3>
+      <h3>Keyword Suggestions <button type="button" id="addSuggestion">+</button></h3>
       <div class="suggestions">
         <ul id="suggestionsList"></ul>
       </div>
@@ -319,7 +307,7 @@
     const fileListDisplay = document.getElementById('fileList');
     let allFiles = [];
 
-    let defaultSuggestions = [];
+    let defaultSuggestions = ['Mathematics', 'Statistics'];
     let fileSuggestions = {};
     let selectedKeywords = [];
 
@@ -344,30 +332,6 @@
       select.appendChild(opt);
     }
 
-    function getCommonKeywords() {
-      try {
-        const raw = localStorage.getItem('commonKeywords');
-        if (raw) return JSON.parse(raw);
-      } catch (e) {}
-      return ['Mathematics', 'Statistics', 'Computer Science'];
-    }
-
-    function saveCommonKeywords(list) {
-      localStorage.setItem('commonKeywords', JSON.stringify(list));
-    }
-
-    function populateCommonKeywords() {
-      const select = document.getElementById('commonKeywords');
-      if (!select) return;
-      const list = getCommonKeywords();
-      select.innerHTML = '<option value="">Select</option>';
-      list.forEach(k => {
-        const opt = document.createElement('option');
-        opt.value = k;
-        opt.textContent = k;
-        select.appendChild(opt);
-      });
-    }
 
     function getStoredSuggestions() {
       try {
@@ -390,12 +354,12 @@
       const list = document.getElementById('suggestionsList');
       if (!list) return;
       const stored = getStoredSuggestions();
-      const combined = {};
-      defaultSuggestions.forEach(s => combined[s] = stored[s] || 0);
-      Object.keys(stored).forEach(k => combined[k] = stored[k]);
-      const sorted = Object.keys(combined)
-        .map(k => ({ text: k, count: combined[k] }))
+      const defaults = defaultSuggestions.map(s => ({ text: s, count: stored[s] || 0 }));
+      const rest = Object.keys(stored)
+        .filter(k => !defaultSuggestions.includes(k))
+        .map(k => ({ text: k, count: stored[k] }))
         .sort((a, b) => b.count - a.count);
+      const sorted = [...defaults, ...rest];
 
       const liMarkup = s => {
         const words = s.text.split(/\s+/).map(w => `<span class="suggest-word" data-word="${w}">${w}</span>`).join(' ');
@@ -430,18 +394,11 @@
 
     function deleteSuggestion(text) {
       const stored = getStoredSuggestions();
-      let changed = false;
       if (stored[text]) {
         delete stored[text];
         localStorage.setItem('keywordSuggestions', JSON.stringify(stored));
-        changed = true;
       }
-      const idx = defaultSuggestions.indexOf(text);
-      if (idx > -1) {
-        defaultSuggestions.splice(idx, 1);
-        changed = true;
-      }
-      if (changed) updateSuggestionsUI();
+      updateSuggestionsUI();
     }
 
     function updateFileSuggestionsUI() {
@@ -659,25 +616,12 @@
         });
       }
 
-      populateCommonKeywords();
-      const commonSelect = document.getElementById('commonKeywords');
-      if (commonSelect) {
-        commonSelect.addEventListener('change', () => {
-          if (commonSelect.value) {
-            addKeyword(commonSelect.value);
-            commonSelect.value = '';
-          }
-        });
-      }
-      const addCommonBtn = document.getElementById('addCommonKeyword');
-      if (addCommonBtn) {
-        addCommonBtn.addEventListener('click', () => {
+      const addSuggestion = document.getElementById('addSuggestion');
+      if (addSuggestion) {
+        addSuggestion.addEventListener('click', () => {
           const kw = prompt('Enter new keyword');
           if (kw) {
-            const list = getCommonKeywords();
-            list.push(kw);
-            saveCommonKeywords(list);
-            populateCommonKeywords();
+            saveSuggestion(kw.trim());
           }
         });
       }
