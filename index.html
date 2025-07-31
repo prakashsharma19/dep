@@ -99,8 +99,8 @@
       background-color: #0055aa;
     }
     .btn-icon {
-      width: 16px;
-      height: 16px;
+      width: 24px;
+      height: 24px;
     }
 
     .keyword-container {
@@ -120,10 +120,15 @@
       color: #fff;
       padding: 4px 8px;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 18px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      transition: transform 0.2s;
+    }
+
+    .keyword-tag:hover {
+      transform: scale(1.2);
     }
 
     .keyword-tag button {
@@ -161,6 +166,15 @@
 
     .domain-wrapper select {
       width: 200px;
+    }
+
+    .common-keywords {
+      margin-bottom: 15px;
+    }
+
+    #totalEntries {
+      font-weight: bold;
+      margin-bottom: 15px;
     }
 
 
@@ -216,8 +230,8 @@
 
     .suggestions li button img,
     .file-item button img {
-      width: 16px;
-      height: 16px;
+      width: 24px;
+      height: 24px;
     }
 
     .suggestions li:hover {
@@ -229,7 +243,6 @@
   <header><img src="https://raw.githubusercontent.com/prakashsharma19/hosted-images/main/pphlogo.png" alt="PPH logo" class="logo">PPH Dept.</header>
   <div class="container">
     <div class="left-section">
-      <h2>Department-wise Entries</h2>
       <div id="dropArea">Drag &amp; Drop files here or click to browse</div>
       <input type="file" id="fileInput" multiple accept=".txt">
       <div id="fileList"></div>
@@ -250,10 +263,18 @@
           </select>
         </div>
       </div>
+      <div class="common-keywords">
+        <label for="commonKeywords">Common Keywords</label>
+        <div class="domain-wrapper">
+          <select id="commonKeywords"></select>
+          <button type="button" id="addCommonKeyword">+</button>
+        </div>
+      </div>
+      <div id="totalEntries">Total Entries: <span id="totalCount">0</span></div>
       <button id="processBtn" style="background-color:#28a745;"><img src="https://cdn-icons-png.flaticon.com/512/3079/3079162.png" class="btn-icon" alt="process">Process</button>
       <div id="processOptions" style="display:none; margin-top:10px;">
-        <button onclick="extractEntries()"><img src="https://cdn-icons-png.flaticon.com/512/2143/2143359.png" class="btn-icon" alt="extract">Extract and Download</button>
-        <button onclick="downloadRest()"><img src="https://cdn-icons-png.flaticon.com/512/9502/9502265.png" class="btn-icon" alt="download">Download Rest</button>
+        <button id="extractBtn" onclick="extractEntries()"><img src="https://cdn-icons-png.flaticon.com/512/6713/6713062.png" class="btn-icon" alt="extract">Extract and Download (<span id="extractCount">0</span>)</button>
+        <button id="restBtn" onclick="downloadRest()"><img src="https://cdn-icons-png.flaticon.com/512/9502/9502265.png" class="btn-icon" alt="download">Download Rest (<span id="restCount">0</span>)</button>
       </div>
   <div id="restContainer" style="display:none; margin-top:20px;">
     <h3>Rest Files</h3>
@@ -305,6 +326,31 @@
       select.appendChild(opt);
     }
 
+    function getCommonKeywords() {
+      try {
+        const raw = localStorage.getItem('commonKeywords');
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return ['Mathematics', 'Statistics', 'Computer Science'];
+    }
+
+    function saveCommonKeywords(list) {
+      localStorage.setItem('commonKeywords', JSON.stringify(list));
+    }
+
+    function populateCommonKeywords() {
+      const select = document.getElementById('commonKeywords');
+      if (!select) return;
+      const list = getCommonKeywords();
+      select.innerHTML = '<option value="">Select</option>';
+      list.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        select.appendChild(opt);
+      });
+    }
+
     function getStoredSuggestions() {
       try {
         const raw = localStorage.getItem('keywordSuggestions');
@@ -335,7 +381,7 @@
 
       const liMarkup = s => {
         const words = s.text.split(/\s+/).map(w => `<span class="suggest-word" data-word="${w}">${w}</span>`).join(' ');
-        return `<li data-text="${s.text}">${words}<button class="all-btn"><img src="https://cdn-icons-png.flaticon.com/512/5110/5110777.png" class="btn-icon" alt="all"></button><button class="del-btn"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" class="btn-icon" alt="delete"></button></li>`;
+        return `<li data-text="${s.text}">${words}<button class="all-btn"><img src="https://cdn-icons-png.flaticon.com/512/14540/14540378.png" class="btn-icon" alt="all"></button><button class="del-btn"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" class="btn-icon" alt="delete"></button></li>`;
       };
 
       list.innerHTML = sorted.map(liMarkup).join('');
@@ -389,7 +435,7 @@
 
       const liMarkup = s => {
         const words = s.text.split(/\s+/).map(w => `<span class="suggest-word" data-word="${w}">${w}</span>`).join(' ');
-        return `<li data-text="${s.text}">${words}<button class="all-btn"><img src="https://cdn-icons-png.flaticon.com/512/5110/5110777.png" class="btn-icon" alt="all"></button><button class="del-btn"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" class="btn-icon" alt="delete"></button></li>`;
+        return `<li data-text="${s.text}">${words}<button class="all-btn"><img src="https://cdn-icons-png.flaticon.com/512/14540/14540378.png" class="btn-icon" alt="all"></button><button class="del-btn"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" class="btn-icon" alt="delete"></button></li>`;
       };
 
       list.innerHTML = sorted.map(liMarkup).join('');
@@ -441,13 +487,14 @@
       });
     }
 
-   function addKeyword(text) {
+  function addKeyword(text) {
       text = text.trim();
       if (!text || selectedKeywords.includes(text)) return;
       selectedKeywords.push(text);
       updateKeywordUI();
       clearRestResults();
       resetProcessButton();
+      updateCounts();
     }
 
     function updateKeywordUI() {
@@ -473,11 +520,12 @@
       if (hidden) hidden.value = selectedKeywords.join(',');
     }
 
-   function removeKeyword(index) {
+  function removeKeyword(index) {
       selectedKeywords.splice(index, 1);
       updateKeywordUI();
       clearRestResults();
       resetProcessButton();
+      updateCounts();
     }
 
     function selectSuggestion(text) {
@@ -506,6 +554,53 @@
     }
     function getKeywords() {
       return selectedKeywords.slice();
+    }
+
+    function calculateCounts(cb) {
+      const keywords = getKeywords().map(k => k.toLowerCase());
+      const domain = document.getElementById('emailFilter').value;
+      if (!allFiles.length) { cb({total:0, rest:0}); return; }
+      let total = 0;
+      let rest = 0;
+      let processed = 0;
+      allFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const lines = e.target.result.split(/\r?\n/);
+          let block = [];
+          for (let line of lines) {
+            if (line.trim() === '') {
+              const text = block.join('\n');
+              const kwMatch = keywords.length ? keywords.some(k => text.toLowerCase().includes(k)) : true;
+              const dMatch = matchesDomain(text, domain);
+              if (kwMatch && dMatch) total++; else rest++;
+              block = [];
+            } else {
+              block.push(line);
+            }
+          }
+          if (block.length) {
+            const text = block.join('\n');
+            const kwMatch = keywords.length ? keywords.some(k => text.toLowerCase().includes(k)) : true;
+            const dMatch = matchesDomain(text, domain);
+            if (kwMatch && dMatch) total++; else rest++;
+          }
+          processed++;
+          if (processed === allFiles.length) cb({total, rest});
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    function updateCounts() {
+      calculateCounts(({total, rest}) => {
+        const totalSpan = document.getElementById('totalCount');
+        const extractSpan = document.getElementById('extractCount');
+        const restSpan = document.getElementById('restCount');
+        if (totalSpan) totalSpan.textContent = total;
+        if (extractSpan) extractSpan.textContent = total;
+        if (restSpan) restSpan.textContent = rest;
+      });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -542,8 +637,34 @@
         domainSelect.addEventListener('change', () => {
           clearRestResults();
           resetProcessButton();
+          updateCounts();
         });
       }
+
+      populateCommonKeywords();
+      const commonSelect = document.getElementById('commonKeywords');
+      if (commonSelect) {
+        commonSelect.addEventListener('change', () => {
+          if (commonSelect.value) {
+            addKeyword(commonSelect.value);
+            commonSelect.value = '';
+          }
+        });
+      }
+      const addCommonBtn = document.getElementById('addCommonKeyword');
+      if (addCommonBtn) {
+        addCommonBtn.addEventListener('click', () => {
+          const kw = prompt('Enter new keyword');
+          if (kw) {
+            const list = getCommonKeywords();
+            list.push(kw);
+            saveCommonKeywords(list);
+            populateCommonKeywords();
+          }
+        });
+      }
+
+      updateCounts();
     });
 
   function updateFileList() {
@@ -553,6 +674,7 @@
         <button onclick="removeFile(${i})"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button>
       </div>`).join('');
     generateFileSuggestions();
+    updateCounts();
   }
 
   function clearRestResults() {
@@ -577,6 +699,7 @@
     resetProcessButton();
     const opts = document.getElementById('processOptions');
     if (opts) opts.style.display = 'none';
+    updateCounts();
   }
 
   function removeFile(index) {
@@ -585,6 +708,7 @@
     fileInput.value = '';
     clearRestResults();
     resetProcessButton();
+    updateCounts();
   }
 
     dropArea.addEventListener('dragover', (e) => {
@@ -602,6 +726,7 @@
       allFiles = Array.from(e.dataTransfer.files);
       resetUI();
       updateFileList();
+      updateCounts();
     });
 
     dropArea.addEventListener('click', () => {
@@ -613,6 +738,7 @@
       fileInput.value = '';
       resetUI();
       updateFileList();
+      updateCounts();
     });
 
     function extractForKeyword(keyword, label, domain, cb) {
@@ -801,7 +927,7 @@
           .replace(/\.[^.]+$/, '')
           .replace(/\s*\(\d+[^)]*Entries?\)/i, '')
           .trim();
-        const combinedName = `${mainBase} - combined (${combinedCount} Entries).txt`;
+        const combinedName = `${mainBase} (${combinedCount} Entries).txt`;
       const btnAllCombined = document.getElementById('restCombinedBtn');
       btnAllCombined.onclick = () => downloadBlob(combinedOutput, combinedName);
       const btnAllFiles = document.getElementById('restAllBtn');
