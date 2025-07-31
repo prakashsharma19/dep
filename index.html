@@ -410,11 +410,13 @@
       });
     }
 
-    function addKeyword(text) {
+   function addKeyword(text) {
       text = text.trim();
       if (!text || selectedKeywords.includes(text)) return;
       selectedKeywords.push(text);
       updateKeywordUI();
+      clearRestResults();
+      resetProcessButton();
     }
 
     function updateKeywordUI() {
@@ -440,9 +442,11 @@
       if (hidden) hidden.value = selectedKeywords.join(',');
     }
 
-    function removeKeyword(index) {
+   function removeKeyword(index) {
       selectedKeywords.splice(index, 1);
       updateKeywordUI();
+      clearRestResults();
+      resetProcessButton();
     }
 
     function selectSuggestion(text) {
@@ -492,37 +496,65 @@
       const btn = document.getElementById('processBtn');
       if (btn) {
         btn.addEventListener('click', () => {
+          clearRestResults();
           const opts = document.getElementById('processOptions');
           if (opts) {
             opts.style.display = opts.style.display === 'none' ? 'block' : 'none';
           }
+          btn.style.backgroundColor = '#003366';
+          btn.textContent = 'Processed';
+        });
+      }
+
+      const domainSelect = document.getElementById('emailFilter');
+      if (domainSelect) {
+        domainSelect.addEventListener('change', () => {
+          clearRestResults();
+          resetProcessButton();
         });
       }
     });
 
-   function updateFileList() {
-     fileListDisplay.innerHTML = allFiles.map((f, i) => `
-       <div class="file-item">
-         <span>${f.name}</span>
-         <button onclick="removeFile(${i})"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button>
-       </div>`).join('');
-     generateFileSuggestions();
-   }
+  function updateFileList() {
+    fileListDisplay.innerHTML = allFiles.map((f, i) => `
+      <div class="file-item">
+        <span>${f.name}</span>
+        <button onclick="removeFile(${i})"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button>
+      </div>`).join('');
+    generateFileSuggestions();
+  }
 
-   function resetUI() {
-     selectedKeywords = [];
-     updateKeywordUI();
-     const rest = document.getElementById('restContainer');
-     if (rest) rest.style.display = 'none';
-     const opts = document.getElementById('processOptions');
-     if (opts) opts.style.display = 'none';
-   }
+  function clearRestResults() {
+    const container = document.getElementById('restContainer');
+    const list = document.getElementById('restList');
+    if (list) list.innerHTML = '';
+    if (container) container.style.display = 'none';
+  }
 
-   function removeFile(index) {
-     allFiles.splice(index, 1);
-      updateFileList();
-      fileInput.value = '';
-   }
+  function resetProcessButton() {
+    const btn = document.getElementById('processBtn');
+    if (btn) {
+      btn.style.backgroundColor = '#28a745';
+      btn.textContent = 'Process';
+    }
+  }
+
+  function resetUI() {
+    selectedKeywords = [];
+    updateKeywordUI();
+    clearRestResults();
+    resetProcessButton();
+    const opts = document.getElementById('processOptions');
+    if (opts) opts.style.display = 'none';
+  }
+
+  function removeFile(index) {
+    allFiles.splice(index, 1);
+    updateFileList();
+    fileInput.value = '';
+    clearRestResults();
+    resetProcessButton();
+  }
 
     dropArea.addEventListener('dragover', (e) => {
       e.preventDefault();
