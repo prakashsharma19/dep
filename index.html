@@ -291,13 +291,13 @@
   </div>
     </div>
     <div class="right-section">
-      <h3>File based suggestion:</h3>
-      <div class="suggestions">
-        <ul id="fileSuggestionsList"></ul>
-      </div>
       <h3>Keyword Suggestions <button type="button" id="addSuggestion">+</button></h3>
       <div class="suggestions">
         <ul id="suggestionsList"></ul>
+      </div>
+      <h3>File based suggestion:</h3>
+      <div class="suggestions">
+        <ul id="fileSuggestionsList"></ul>
       </div>
     </div>
   </div>
@@ -740,9 +740,9 @@
             const cleaned = label.replace(/\s+/g, ' ').trim();
             let fileName;
             if (!label && !domain) {
-              fileName = `${mainFileName} - combined (${entryCount} Entries).txt`;
+              fileName = `${mainFileName} - combined (${entryCount} Entries) [ALL COMBINED].txt`;
             } else if (label) {
-              fileName = `${mainFileName} - ${cleaned} (${entryCount} Entries).txt`;
+              fileName = `${mainFileName} - ${cleaned} (${entryCount} Entries)${cleaned.toLowerCase()==='combined'?' [ALL COMBINED]':''}.txt`;
             } else {
               fileName = `${mainFileName} - ${domain} (${entryCount} Entries).txt`;
             }
@@ -890,7 +890,7 @@
           .replace(/\.[^.]+$/, '')
           .replace(/\s*\(\d+[^)]*Entries?\)/i, '')
           .trim();
-        const combinedName = `${mainBase} (${combinedCount} Entries).txt`;
+        const combinedName = `${mainBase} (${combinedCount} Entries) [ALL COMBINED].txt`;
       const btnAllCombined = document.getElementById('restCombinedBtn');
       btnAllCombined.onclick = () => downloadBlob(combinedOutput, combinedName);
       const btnAllFiles = document.getElementById('restAllBtn');
