@@ -173,6 +173,10 @@
       flex-wrap: wrap;
     }
 
+    .suggest-word {
+      cursor: pointer;
+    }
+
     .suggestions li span,
     .file-item span {
       white-space: normal;
@@ -242,13 +246,13 @@
   </div>
     </div>
     <div class="right-section">
-      <h3>Keyword Suggestions</h3>
-      <div class="suggestions">
-        <ul id="suggestionsList"></ul>
-      </div>
       <h3>File based suggestion:</h3>
       <div class="suggestions">
         <ul id="fileSuggestionsList"></ul>
+      </div>
+      <h3>Keyword Suggestions</h3>
+      <div class="suggestions">
+        <ul id="suggestionsList"></ul>
       </div>
     </div>
   </div>
@@ -312,13 +316,20 @@
         .map(k => ({ text: k, count: combined[k] }))
         .sort((a, b) => b.count - a.count);
 
-      const liMarkup = s =>
-        `<li data-text="${s.text}"><span>${s.text}</span><button><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button></li>`;
+      const liMarkup = s => {
+        const words = s.text.split(/\s+/).map(w => `<span class="suggest-word" data-word="${w}">${w}</span>`).join(' ');
+        return `<li data-text="${s.text}">${words}<button><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button></li>`;
+      };
 
       list.innerHTML = sorted.map(liMarkup).join('');
 
       list.querySelectorAll('li').forEach(li => {
-        li.addEventListener('click', () => selectSuggestion(li.dataset.text));
+        li.querySelectorAll('.suggest-word').forEach(sw => {
+          sw.addEventListener('click', e => {
+            e.stopPropagation();
+            selectSuggestion(sw.dataset.word);
+          });
+        });
         const btn = li.querySelector('button');
         if (btn) {
           btn.addEventListener('click', e => {
@@ -352,12 +363,19 @@
         .map(k => ({ text: k, count: fileSuggestions[k] }))
         .sort((a, b) => b.count - a.count);
 
-      const liMarkup = s =>
-        `<li data-text="${s.text}"><span>${s.text}</span><button><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button></li>`;
+      const liMarkup = s => {
+        const words = s.text.split(/\s+/).map(w => `<span class="suggest-word" data-word="${w}">${w}</span>`).join(' ');
+        return `<li data-text="${s.text}">${words}<button><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button></li>`;
+      };
 
       list.innerHTML = sorted.map(liMarkup).join('');
       list.querySelectorAll('li').forEach(li => {
-        li.addEventListener('click', () => selectSuggestion(li.dataset.text));
+        li.querySelectorAll('.suggest-word').forEach(sw => {
+          sw.addEventListener('click', e => {
+            e.stopPropagation();
+            selectSuggestion(sw.dataset.word);
+          });
+        });
         const btn = li.querySelector('button');
         if (btn) {
           btn.addEventListener('click', e => {
@@ -482,14 +500,23 @@
       }
     });
 
-    function updateFileList() {
-      fileListDisplay.innerHTML = allFiles.map((f, i) => `
-        <div class="file-item">
-          <span>${f.name}</span>
-          <button onclick="removeFile(${i})"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button>
-        </div>`).join('');
-      generateFileSuggestions();
-    }
+   function updateFileList() {
+     fileListDisplay.innerHTML = allFiles.map((f, i) => `
+       <div class="file-item">
+         <span>${f.name}</span>
+         <button onclick="removeFile(${i})"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button>
+       </div>`).join('');
+     generateFileSuggestions();
+   }
+
+   function resetUI() {
+     selectedKeywords = [];
+     updateKeywordUI();
+     const rest = document.getElementById('restContainer');
+     if (rest) rest.style.display = 'none';
+     const opts = document.getElementById('processOptions');
+     if (opts) opts.style.display = 'none';
+   }
 
    function removeFile(index) {
      allFiles.splice(index, 1);
@@ -509,7 +536,8 @@
     dropArea.addEventListener('drop', (e) => {
       e.preventDefault();
       dropArea.style.borderColor = '#ccc';
-      allFiles = allFiles.concat(Array.from(e.dataTransfer.files));
+      allFiles = Array.from(e.dataTransfer.files);
+      resetUI();
       updateFileList();
     });
 
@@ -518,8 +546,9 @@
     });
 
     fileInput.addEventListener('change', () => {
-      allFiles = allFiles.concat(Array.from(fileInput.files));
+      allFiles = Array.from(fileInput.files);
       fileInput.value = '';
+      resetUI();
       updateFileList();
     });
 
