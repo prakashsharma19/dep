@@ -5,25 +5,32 @@
   <title>PPH Dept.</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background-color: #eef2f5;
       margin: 0;
       padding: 0;
     }
     header {
-      background-color: #003366;
+      background: linear-gradient(90deg,#003366,#0055aa);
       color: #fff;
       padding: 15px 30px;
       font-size: 24px;
+      display: flex;
+      align-items: center;
+    }
+    header .logo {
+      height: 30px;
+      margin-right: 10px;
     }
     .container {
       padding: 30px;
       background-color: #fff;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       border-radius: 10px;
-      width: 100%;
+      width: 90%;
+      max-width: 1000px;
       display: flex;
-      margin: 0;
+      margin: 20px auto;
       min-height: calc(100vh - 60px);
     }
     .left-section {
@@ -34,6 +41,7 @@
       flex: 1;
       border-left: 1px solid #ccc;
       padding-left: 20px;
+      background-color: #f9f9f9;
     }
     #dropArea {
       border: 2px dashed #ccc;
@@ -79,12 +87,20 @@
     }
     button {
       background-color: #003366;
-      color: white;
+      color: #fff;
       border: none;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
     }
     button:hover {
       background-color: #0055aa;
+    }
+    .btn-icon {
+      width: 16px;
+      height: 16px;
     }
 
     .keyword-container {
@@ -200,7 +216,6 @@
     .file-item button img {
       width: 16px;
       height: 16px;
-      display: block;
     }
 
     .suggestions li:hover {
@@ -209,7 +224,7 @@
   </style>
 </head>
 <body>
-  <header>PPH Dept.</header>
+  <header><img src="https://raw.githubusercontent.com/prakashsharma19/hosted-images/main/pphlogo.png" alt="PPH logo" class="logo">PPH Dept.</header>
   <div class="container">
     <div class="left-section">
       <h2>Department-wise Entries</h2>
@@ -233,15 +248,15 @@
           </select>
         </div>
       </div>
-      <button id="processBtn" style="background-color:#28a745;">Process</button>
+      <button id="processBtn" style="background-color:#28a745;"><img src="https://cdn-icons-png.flaticon.com/512/3079/3079162.png" class="btn-icon" alt="process">Process</button>
       <div id="processOptions" style="display:none; margin-top:10px;">
-        <button onclick="extractEntries()">Extract and Download</button>
-        <button onclick="downloadRest()">Download Rest</button>
+        <button onclick="extractEntries()"><img src="https://cdn-icons-png.flaticon.com/512/2143/2143359.png" class="btn-icon" alt="extract">Extract and Download</button>
+        <button onclick="downloadRest()"><img src="https://cdn-icons-png.flaticon.com/512/9502/9502265.png" class="btn-icon" alt="download">Download Rest</button>
       </div>
   <div id="restContainer" style="display:none; margin-top:20px;">
     <h3>Rest Files</h3>
-    <button id="restAllBtn" style="margin-top:10px;">Download All Rest Files</button>
-    <button id="restCombinedBtn" style="margin-top:10px;">Download All Combined</button>
+    <button id="restAllBtn" style="margin-top:10px;"><img src="https://cdn-icons-png.flaticon.com/512/9502/9502265.png" class="btn-icon" alt="download">Download All Rest Files</button>
+    <button id="restCombinedBtn" style="margin-top:10px;"><img src="https://cdn-icons-png.flaticon.com/512/9502/9502265.png" class="btn-icon" alt="download">Download All Combined</button>
     <div id="restList"></div>
   </div>
     </div>
@@ -318,7 +333,7 @@
 
       const liMarkup = s => {
         const words = s.text.split(/\s+/).map(w => `<span class="suggest-word" data-word="${w}">${w}</span>`).join(' ');
-        return `<li data-text="${s.text}">${words}<button><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button></li>`;
+        return `<li data-text="${s.text}">${words}<button class="all-btn"><img src="https://cdn-icons-png.flaticon.com/512/5110/5110777.png" class="btn-icon" alt="all"></button><button class="del-btn"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" class="btn-icon" alt="delete"></button></li>`;
       };
 
       list.innerHTML = sorted.map(liMarkup).join('');
@@ -330,9 +345,16 @@
             selectSuggestion(sw.dataset.word);
           });
         });
-        const btn = li.querySelector('button');
-        if (btn) {
-          btn.addEventListener('click', e => {
+        const allBtn = li.querySelector('.all-btn');
+        if (allBtn) {
+          allBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            selectSuggestion(li.dataset.text);
+          });
+        }
+        const delBtn = li.querySelector('.del-btn');
+        if (delBtn) {
+          delBtn.addEventListener('click', e => {
             e.stopPropagation();
             deleteSuggestion(li.dataset.text);
           });
@@ -365,7 +387,7 @@
 
       const liMarkup = s => {
         const words = s.text.split(/\s+/).map(w => `<span class="suggest-word" data-word="${w}">${w}</span>`).join(' ');
-        return `<li data-text="${s.text}">${words}<button><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" alt="delete"></button></li>`;
+        return `<li data-text="${s.text}">${words}<button class="all-btn"><img src="https://cdn-icons-png.flaticon.com/512/5110/5110777.png" class="btn-icon" alt="all"></button><button class="del-btn"><img src="https://img.icons8.com/?size=100&id=67884&format=png&color=000000" class="btn-icon" alt="delete"></button></li>`;
       };
 
       list.innerHTML = sorted.map(liMarkup).join('');
@@ -376,9 +398,16 @@
             selectSuggestion(sw.dataset.word);
           });
         });
-        const btn = li.querySelector('button');
-        if (btn) {
-          btn.addEventListener('click', e => {
+        const allBtn = li.querySelector('.all-btn');
+        if (allBtn) {
+          allBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            selectSuggestion(li.dataset.text);
+          });
+        }
+        const delBtn = li.querySelector('.del-btn');
+        if (delBtn) {
+          delBtn.addEventListener('click', e => {
             e.stopPropagation();
             li.remove();
           });
@@ -760,7 +789,7 @@
         const span = document.createElement('span');
         span.textContent = name;
         const btn = document.createElement('button');
-        btn.textContent = 'Download';
+        btn.innerHTML = '<img src="https://cdn-icons-png.flaticon.com/512/9502/9502265.png" class="btn-icon" alt="download">Download';
         btn.addEventListener('click', () => downloadBlob(info.output, name));
         item.appendChild(span);
         item.appendChild(btn);
