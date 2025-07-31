@@ -120,7 +120,7 @@
       color: #fff;
       padding: 4px 8px;
       border-radius: 4px;
-      font-size: 18px;
+      font-size: 20px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -158,6 +158,11 @@
     .domain-filter {
       margin-bottom: 15px;
     }
+    .filter-row {
+      display: flex;
+      gap: 15px;
+      align-items: flex-end;
+    }
 
     .domain-wrapper {
       display: flex;
@@ -165,11 +170,25 @@
     }
 
     .domain-wrapper select {
+      margin-right: 10px;
       width: 200px;
     }
 
     .common-keywords {
+      position: relative;
       margin-bottom: 15px;
+    }
+    .common-keywords select {
+      padding-right: 30px;
+    }
+    #addCommonKeyword {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
     }
 
     #totalEntries {
@@ -195,7 +214,7 @@
       padding: 5px 8px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 16px;
       color: blue;
       display: flex;
       align-items: center;
@@ -251,6 +270,7 @@
         <input id="keywordInput" type="text" placeholder="Add keyword and press Enter">
         <input type="hidden" id="searchTerm">
       </div>
+<div class="filter-row">
       <div class="domain-filter">
         <label for="emailFilter">Email Domain</label>
         <div class="domain-wrapper">
@@ -270,6 +290,7 @@
           <button type="button" id="addCommonKeyword">+</button>
         </div>
       </div>
+</div>
       <div id="totalEntries">Total Entries: <span id="totalCount">0</span></div>
       <button id="processBtn" style="background-color:#28a745;"><img src="https://cdn-icons-png.flaticon.com/512/3079/3079162.png" class="btn-icon" alt="process">Process</button>
       <div id="processOptions" style="display:none; margin-top:10px;">
